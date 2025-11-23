@@ -1,6 +1,6 @@
 # ZON v1.0 (Entropy Engine)
 
-**Zero Overhead Notation** - A human-readable data serialization format optimized for LLM token efficiency.
+**Zero Overhead Notation** - A human-readable data serialization format optimized for LLM token efficiency, JSON for LLMs.
 
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-Proprietary-orange.svg)](LICENSE)
