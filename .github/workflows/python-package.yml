@@ -56,4 +56,4 @@ jobs:
     - name: Run Regression Benchmark
       run: |
         cd zon-format
-        python test_comprehensive.py
+        python benchmarks/comprehensive_benchmark.py
