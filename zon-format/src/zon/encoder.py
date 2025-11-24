@@ -164,14 +164,16 @@ class ZonEncoder:
                         prev_vals[col] = val
                         continue
                 
-                # Repetition detection
-                if i > 0 and val == prev_vals[col] and analysis['has_repetition']:
-                    tokens.append(LIQUID_TOKEN)
-                    prev_vals[col] = val
-                    continue
-                
                 # Explicit value
-                tokens.append(self._format_value(val))
+                formatted_val = self._format_value(val)
+                
+                # Repetition detection
+                # Only use ^ if it saves space (length > 1)
+                if i > 0 and val == prev_vals[col] and analysis['has_repetition'] and len(formatted_val) > 1:
+                    tokens.append(LIQUID_TOKEN)
+                else:
+                    tokens.append(formatted_val)
+                
                 prev_vals[col] = val
             
             lines.append(",".join(tokens))  # No space after comma for compactness
@@ -234,6 +236,86 @@ class ZonEncoder:
         Returns:
             Formatted string
         """
+    def _csv_quote(self, s: str) -> str:
+        """
+        Quote a string for CSV (RFC 4180).
+        
+        Escapes quotes by doubling them (" -> "") and wraps in double quotes.
+        """
+        escaped = s.replace('"', '""')
+        return f'"{escaped}"'
+
+    def _format_value(self, val: Any) -> str:
+        """
+        Format a value with minimal quoting.
+        
+        Args:
+            val: Value to format
+            
+        Returns:
+            Formatted string
+        """
+    def _format_zon_node(self, val: Any) -> str:
+        """
+        Format a value using ZON-style syntax for nested structures.
+        Dicts: {key:val,key:val}
+        Lists: [val,val]
+        Strings: Minimal quoting
+        """
+        if val is None:
+            return "null"
+        if val is True:
+            return "T"
+        if val is False:
+            return "F"
+        if isinstance(val, (int, float)):
+            s = str(val)
+            return s[:-2] if s.endswith(".0") else s
+        
+        if isinstance(val, dict):
+            items = []
+            # Sort keys for consistent output
+            for k, v in sorted(val.items()):
+                # Format key (unquoted if simple)
+                key_str = k
+                if self._needs_quotes(k):
+                    key_str = self._csv_quote(k)
+                
+                # Format value recursively
+                val_str = self._format_zon_node(v)
+                items.append(f"{key_str}:{val_str}")
+            return f"{{{','.join(items)}}}"
+            
+        if isinstance(val, list):
+            items = [self._format_zon_node(item) for item in val]
+            return f"[{','.join(items)}]"
+            
+        # String handling
+        s = str(val)
+        # For nested ZON nodes, we need to be careful about delimiters
+        # The delimiters are ',' (item sep), ':' (kv sep), '}' (dict end), ']' (list end)
+        # We reuse _needs_quotes but might need stricter rules for nested context?
+        # Actually, if we use standard CSV quoting for the *outer* cell, 
+        # then inside the cell we just need to ensure we don't break the ZON parser.
+        # The ZON parser will look for , : } ]
+        if any(c in s for c in [',', ':', '{', '}', '[', ']']):
+             # Use JSON-style quoting for inner strings to avoid confusion with CSV quotes
+             # But wait, we want to avoid \" escaping if possible.
+             # Let's stick to standard quoting but we need to escape the quote char itself.
+             # If we use "..." for strings, we need to escape " inside.
+             return json.dumps(s)
+        return s
+
+    def _format_value(self, val: Any) -> str:
+        """
+        Format a value with minimal quoting.
+        
+        Args:
+            val: Value to format
+            
+        Returns:
+            Formatted string
+        """
         if val is None:
             return "null"
         if val is True:
@@ -246,30 +328,44 @@ class ZonEncoder:
             s = str(val)
             # Remove .0 suffix for cleaner output
             return s[:-2] if s.endswith(".0") else s
-        if isinstance(val, list):
-            # Format list with minimal quoting: [item1,item2,item3]
-            items = []
-            for item in val:
-                if isinstance(item, str):
-                    # Only quote if contains comma, brackets, or control chars
-                    if any(c in item for c in [',', '[', ']', '\n', '\r', '\t']):
-                        items.append(json.dumps(item))
-                    else:
-                        items.append(item)
-                else:
-                    items.append(self._format_value(item))
-            # Lists contain commas, so quote the whole thing for CSV
-            list_str = f"[{','.join(items)}]"
-            return json.dumps(list_str)  # Quote for CSV safety
-        if isinstance(val, dict):
-            # Dict as JSON - MUST be quoted for CSV (contains commas)
-            json_str = json.dumps(val, separators=(',', ':'))
-            return json.dumps(json_str)  # Double-encode: first to JSON, then quote for CSV
         
-        # String formatting with minimal quoting
+        if isinstance(val, (list, dict)):
+            # Use ZON-style formatting for complex types
+            # This returns a string like "{k:v}" or "[a,b]"
+            # This string might contain commas, so the WHOLE thing needs to be CSV-quoted
+            zon_str = self._format_zon_node(val)
+            if self._needs_quotes(zon_str):
+                return self._csv_quote(zon_str)
+            return zon_str
+        
+        # String formatting
         s = str(val)
+        
+        # Check if it looks like a number/bool/null (needs type protection)
+        # These must be encoded as JSON strings ("...") so decoder sees quotes
+        needs_type_protection = False
+        if s in ['T', 'F', 'null', GAS_TOKEN, LIQUID_TOKEN]:
+            needs_type_protection = True
+        elif s.isdigit() or (s.startswith('-') and s[1:].isdigit()):
+            needs_type_protection = True
+        elif s.strip() != s: # Leading/trailing whitespace
+            needs_type_protection = True
+        else:
+            try:
+                float(s)
+                needs_type_protection = True
+            except ValueError:
+                pass
+                
+        if needs_type_protection:
+            # Wrap in quotes (JSON style) then CSV quote
+            # s="123" -> json='"123"' -> csv='"""123"""'
+            return self._csv_quote(json.dumps(s))
+            
+        # Check if it needs CSV quoting (delimiters)
         if self._needs_quotes(s):
-            return json.dumps(s)
+            return self._csv_quote(s)
+            
         return s
 
     def _needs_quotes(self, s: str) -> bool:
@@ -294,6 +390,21 @@ class ZonEncoder:
         
         # Reserved tokens need quoting
         if s in ['T', 'F', 'null', GAS_TOKEN, LIQUID_TOKEN]:
+            return True
+        
+        # Quote if it looks like a number (to preserve string type)
+        # Check for integer
+        if s.isdigit() or (s.startswith('-') and s[1:].isdigit()):
+            return True
+        # Check for float
+        try:
+            float(s)
+            return True
+        except ValueError:
+            pass
+            
+        # Quote if leading/trailing whitespace (preserved)
+        if s.strip() != s:
             return True
         
         # Only quote if contains delimiter or control chars

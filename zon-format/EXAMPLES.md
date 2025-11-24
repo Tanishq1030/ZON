@@ -196,6 +196,29 @@ T,Engineering,1,John Doe,[Python,Go]
 - `_` → Auto-increment ID (2 = 1 + 1)
 - `[Python,Go]` → Inline array (no quotes)
 
+- `[Python,Go]` → Inline array (no quotes)
+
+### Nested Objects in Tables
+
+**Input**:
+```json
+[
+  {"id": 1, "meta": {"ip": "1.2.3.4", "agent": "Firefox"}},
+  {"id": 2, "meta": {"ip": "10.0.0.1", "agent": "Chrome"}}
+]
+```
+
+**ZON**:
+```
+@data(2):id,meta
+1,"{agent:Firefox,ip:1.2.3.4}"
+2,"{agent:Chrome,ip:10.0.0.1}"
+```
+
+- Nested objects use `{key:val}` syntax
+- **Double-quoted** for CSV safety (`""` escapes quotes)
+- Keys are unquoted if simple
+
 ---
 
 ### Repetitive Data
@@ -270,7 +293,7 @@ ZON uses **minimal quoting** - quotes are only added when the value contains:
 | `Hello: World` | `Hello: World` | No | **Colons are fine!** |
 | `data,value` | `"data,value"` | Yes | Contains comma |
 | `[test]` | `"[test]"` | Yes | Contains brackets |
-| `say "hi"` | `"say \"hi\""` | Yes | Contains quotes |
+| `say "hi"` | `"say ""hi"""` | Yes | Contains quotes |
 
 This is a major improvement over v7.0 which quoted anything with spaces or colons!
 

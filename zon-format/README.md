@@ -192,18 +192,6 @@ context:Trip
 @hikes(2):...
 ```
 
-### 2. Singleton Bypass
-
-Single-item lists are flattened to avoid table overhead:
-
-```json
-{"items": [{"id": 1, "name": "Book"}]}
-```
-↓
-```
-items.0.id:1
-items.0.name:Book
-```
 
 ### 3. Intelligent Compression
 
@@ -247,6 +235,7 @@ python test_comprehensive.py
 - ✅ Clean @table syntax
 - ✅ Aggressive quote removal (spaces no longer trigger quoting)
 - ✅ Compact array syntax: `[item1,item2,item3]`
+- ✅ Optimized nested data: `{key:val}` syntax (no more JSON strings)
 - ✅ 31.9% compression vs JSON, 25.6% better than TOON
 
 ### v1.0.0 (2025-11-23)

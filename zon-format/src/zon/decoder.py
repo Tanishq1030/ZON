@@ -49,14 +49,18 @@ class ZonDecoder:
                 current_table_name, current_table = self._parse_table_header(line)
                 tables[current_table_name] = current_table
             
-            # Table row (if we're in a table)
-            elif current_table is not None and not META_SEPARATOR in line:
+            # Table row (if we're in a table and haven't read all rows)
+            elif current_table is not None and current_table['row_index'] < current_table['expected_rows']:
                 row = self._parse_table_row(line, current_table)
                 current_table['rows'].append(row)
+                
+                # If we've read all rows, exit table mode
+                if current_table['row_index'] >= current_table['expected_rows']:
+                    current_table = None
             
             # Metadata line: key: value
             elif META_SEPARATOR in line:
-                current_table = None  # Exit table mode
+                current_table = None  # Exit table mode (safety)
                 key, val = line.split(META_SEPARATOR, 1)
                 metadata[key.strip()] = self._parse_value(val.strip())
         
@@ -101,7 +105,8 @@ class ZonDecoder:
             'cols': cols,
             'rows': [],
             'prev_vals': {col: None for col in cols},
-            'row_index': 0
+            'row_index': 0,
+            'expected_rows': count
         }
 
     def _parse_table_row(self, line: str, table: Dict) -> Dict:
@@ -162,94 +167,156 @@ class ZonDecoder:
         """
         return [self._unflatten(row) for row in table['rows']]
 
-    def _parse_value(self, val_str: str) -> Any:
+    def _parse_zon_node(self, text: str) -> Any:
         """
-        Parse a value string to its native type.
-        
-        Args:
-            val_str: String representation
-            
-        Returns:
-            Parsed value
+        Parse a ZON-style nested structure: {k:v,k:v} or [v,v].
+        Recursive descent parser.
         """
-        val_str = val_str.strip()
-        
-        if not val_str:
+        text = text.strip()
+        if not text:
             return None
-        
-        # Boolean
-        if val_str == 'T':
-            return True
-        if val_str == 'F':
-            return False
-        
-        # Null
-        if val_str == 'null':
-            return None
-        
-        # Compact array: [item1,item2,item3]
-        if val_str.startswith('[') and val_str.endswith(']'):
-            inner = val_str[1:-1]
-            if not inner:
-                return []
             
-            # Split by comma, respecting quotes
-            items = []
-            current = []
-            in_quotes = False
-            
-            for char in inner:
-                if char == '"' and (not current or current[-1] != '\\'):
-                    in_quotes = not in_quotes
-                    current.append(char)
-                elif char == ',' and not in_quotes:
-                    item_str = ''.join(current).strip()
-                    items.append(self._parse_value(item_str))
-                    current = []
-                else:
-                    current.append(char)
-            
-            # Add last item
-            if current:
-                item_str = ''.join(current).strip()
-                items.append(self._parse_value(item_str))
-            
-            return items
-        
-        # JSON object
-        if val_str.startswith('{') and val_str.endswith('}'):
-            try:
-                return json.loads(val_str)
-            except:
-                pass
-        
-        # Number
+        # Simple values
+        if text == 'T': return True
+        if text == 'F': return False
+        if text == 'null': return None
+        if text.isdigit(): return int(text)
         try:
-            if '.' in val_str:
-                return float(val_str)
-            return int(val_str)
+            return float(text)
         except ValueError:
             pass
-        
-        # JSON string (quoted) - including double-encoded JSON
-        if val_str.startswith('"') and val_str.endswith('"'):
+            
+        # Quoted string (JSON style)
+        if text.startswith('"'):
             try:
-                unquoted = json.loads(val_str)  # First unquote
-                # Check if the unquoted string is itself JSON
-                if isinstance(unquoted, str):
-                    # Try parsing as JSON (could be double-encoded object/array)
-                    if (unquoted.startswith('{') and unquoted.endswith('}')) or \
-                       (unquoted.startswith('[') and unquoted.endswith(']')):
-                        try:
-                            return json.loads(unquoted)  # Parse the JSON
-                        except:
-                            pass
-                return unquoted
-            except:
-                pass
+                return json.loads(text)
+            except json.JSONDecodeError:
+                return text # Fallback
         
-        # Plain string (unquoted)
-        return val_str
+        # List: [item1,item2]
+        if text.startswith('[') and text.endswith(']'):
+            content = text[1:-1]
+            if not content.strip():
+                return []
+            
+            items = []
+            depth = 0
+            current_item = []
+            in_quote = False
+            
+            for char in content:
+                if char == '"' and (not current_item or current_item[-1] != '\\'):
+                    in_quote = not in_quote
+                
+                if not in_quote:
+                    if char in '[{':
+                        depth += 1
+                    elif char in ']}':
+                        depth -= 1
+                    elif char == ',' and depth == 0:
+                        items.append(self._parse_zon_node("".join(current_item)))
+                        current_item = []
+                        continue
+                
+                current_item.append(char)
+            
+            if current_item:
+                items.append(self._parse_zon_node("".join(current_item)))
+            return items
+
+        # Dict: {k:v,k:v}
+        if text.startswith('{') and text.endswith('}'):
+            content = text[1:-1]
+            if not content.strip():
+                return {}
+                
+            items = {}
+            depth = 0
+            current_part = []
+            current_key = None
+            in_quote = False
+            
+            for char in content:
+                if char == '"' and (not current_part or current_part[-1] != '\\'):
+                    in_quote = not in_quote
+                
+                if not in_quote:
+                    if char in '[{':
+                        depth += 1
+                    elif char in ']}':
+                        depth -= 1
+                    elif char == ':' and depth == 0 and current_key is None:
+                        # Found key separator
+                        key_str = "".join(current_part).strip()
+                        # Unquote key if needed
+                        if key_str.startswith('"'):
+                            try:
+                                current_key = json.loads(key_str)
+                            except:
+                                current_key = key_str
+                        else:
+                            current_key = key_str
+                        current_part = []
+                        continue
+                    elif char == ',' and depth == 0:
+                        # Found item separator
+                        if current_key is not None:
+                            val_str = "".join(current_part)
+                            items[current_key] = self._parse_zon_node(val_str)
+                            current_key = None
+                            current_part = []
+                        continue
+                
+                current_part.append(char)
+            
+            # Last item
+            if current_key is not None:
+                val_str = "".join(current_part)
+                items[current_key] = self._parse_zon_node(val_str)
+                
+            return items
+
+        # Unquoted string
+        return text
+
+    def _parse_value(self, val: str) -> Any:
+        """
+        Parse a single value from a ZON cell.
+        """
+        val = val.strip()
+        if not val:
+            return None
+        if val == 'T':
+            return True
+        if val == 'F':
+            return False
+        if val == 'null':
+            return None
+        
+        # Check for ZON-style nested structures
+        # These will be unquoted here because the CSV parser already handled the outer quotes
+        if (val.startswith('{') and val.endswith('}')) or (val.startswith('[') and val.endswith(']')):
+            return self._parse_zon_node(val)
+            
+        # Try number
+        try:
+            if '.' in val:
+                return float(val)
+            return int(val)
+        except ValueError:
+            pass
+            
+        # Double-encoded JSON string fallback (legacy support or explicit JSON)
+        if val.startswith('"') and val.endswith('"'):
+             try:
+                 # It might be a JSON string that was double-quoted
+                 # e.g. "foo,bar" -> CSV: """foo,bar""" -> unquoted: "foo,bar"
+                 # If it looks like a JSON string, try to parse it
+                 return json.loads(val)
+             except json.JSONDecodeError:
+                 pass
+
+        return val
 
     def _unflatten(self, d: Dict) -> Dict:
         """
