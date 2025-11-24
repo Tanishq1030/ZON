@@ -1,0 +1,11 @@
+@data(10):createdAt,defaultBranch,description,forks,id,name,pushedAt,repo,stars,updatedAt,watchers
+2014-12-24T17:49:19Z,main,"freeCodeCamp.org's open-source codebase and curriculum. Learn math, programming, and computer science for free.",42146,28457823,freeCodeCamp,2025-10-28T10:17:16Z,freeCodeCamp/freeCodeCamp,430886,2025-10-28T11:58:08Z,8583
+2018-05-09T12:03:18Z,master,Master programming by recreating your favorite technologies from scratch.,40453,132750724,build-your-own-x,2025-10-10T18:45:01Z,codecrafters-io/build-your-own-x,430877,2025-10-28T12:37:11Z,6332
+2014-07-11T13:42:37Z,main,😎 Awesome lists about all kinds of interesting topics,32029,21737465,awesome,2025-10-27T17:57:31Z,sindresorhus/awesome,410052,2025-10-28T12:40:21Z,8017
+2013-10-11T06:50:37Z,^,:books: Freely available programming books,65199,13491895,free-programming-books,2025-10-28T01:52:13Z,EbookFoundation/free-programming-books,375307,2025-10-28T12:16:59Z,9786
+2016-03-20T23:49:42Z,master,A collective list of free APIs,39473,54346799,public-apis,2025-05-20T15:56:34Z,public-apis/public-apis,374003,2025-10-28T12:33:14Z,4400
+2017-03-15T13:45:52Z,^,"Interactive roadmaps, guides and other educational content to help developers grow in their careers.",43234,85077558,developer-roadmap,2025-10-28T11:09:58Z,kamranahmedse/developer-roadmap,342136,2025-10-28T12:31:02Z,6886
+2016-06-06T02:34:12Z,main,A complete computer science study plan to become a software engineer.,81057,60493101,coding-interview-university,2025-08-28T14:42:47Z,jwasham/coding-interview-university,331947,2025-10-28T12:21:02Z,8511
+2017-02-26T16:15:28Z,master,Learn how to design large-scale systems. Prep for the system design interview.  Includes Anki flashcards.,52904,83222441,system-design-primer,2025-05-21T11:13:33Z,donnemartin/system-design-primer,324409,2025-10-28T12:32:56Z,6819
+2019-03-26T07:31:14Z,^,Repo for counting stars and contributing. Press F to pay respect to glorious developers.,21029,177736533,996.ICU,2025-08-22T06:01:29Z,996icu/996.ICU,274706,2025-10-28T11:07:13Z,4216
+2014-06-27T21:00:06Z,^,"An opinionated list of awesome Python frameworks, libraries, software and resources.",26604,21289110,awesome-python,2025-10-16T13:40:58Z,vinta/awesome-python,266661,2025-10-28T12:28:13Z,6128

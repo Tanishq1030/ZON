@@ -1,8 +1,10 @@
+import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
+
 import time
 import json
 import zon
-import os
-import sys
 
 # Try to import toon
 try:
@@ -15,7 +17,7 @@ except ImportError:
     except ImportError:
         HAS_TOON = False
 
-DATA_DIR = "benchmarks/data"
+DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 DATASETS = ["github-repos.json", "employees.json", "analytics.json", "orders.json", "complex_nested.json"]
 
 def load_dataset(filename):
@@ -27,8 +29,8 @@ def load_dataset(filename):
         return json.load(f)
 
 def run_benchmark():
-    print(f"{'Dataset':<20} | {'JSON':<10} | {'ZON':<10} | {'TOON':<10} | {'ZON vs JSON':<12} | {'ZON vs TOON':<12}")
-    print("-" * 90)
+    print(f"{'Dataset':<20} | {'JSON':<10} | {'ZON':<10} | {'TOON':<10} | {'JSON (ms)':<10} | {'ZON (ms)':<10} | {'TOON (ms)':<10} | {'ZON vs JSON':<12} | {'ZON vs TOON':<12}")
+    print("-" * 130)
     
     for filename in DATASETS:
         data = load_dataset(filename)
@@ -91,7 +93,7 @@ def run_benchmark():
             toon_display = "N/A"
             zvt_display = "N/A"
             
-        print(f"{filename:<20} | {json_size:<10} | {zon_size:<10} | {toon_display:<10} | {zon_vs_json:.1f}%       | {zvt_display:<12}")
+        print(f"{filename:<20} | {json_size:<10} | {zon_size:<10} | {toon_display:<10} | {json_time*1000:<10.2f} | {zon_time*1000:<10.2f} | {toon_time*1000 if toon_time > 0 else 'N/A':<10} | {zon_vs_json:.1f}%       | {zvt_display:<12}")
 
 if __name__ == "__main__":
     run_benchmark()

@@ -1,167 +1,332 @@
+"""
+ZON Decoder v8.0 - ClearText Format
+
+This decoder parses clean, document-style ZON with YAML-like metadata
+and CSV-like tables using @table syntax.
+"""
+
 import json
 import re
 import csv
 import io
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from .constants import *
 from .exceptions import ZonDecodeError
 
+
 class ZonDecoder:
-    def decode(self, zon_str: str) -> List[Dict[str, Any]]:
-        if not zon_str: return []
+    def decode(self, zon_str: str) -> Any:
+        """
+        Decode ZON v8.0 ClearText format to original data structure.
+        
+        Args:
+            zon_str: ZON-encoded string
+            
+        Returns:
+            Decoded data (list or dict)
+        """
+        if not zon_str:
+            return {}
+        
         lines = zon_str.strip().split('\n')
-        if not lines[0].startswith(HEADER_PREFIX): return self._decode_inline(lines)
-
-        parts = lines[0].split(SEPARATOR)
-        dict_map = []
-        headers = {}
-        keys_order = []
-
-        for p in parts:
-            if p.startswith(DICT_MARKER):
-                dict_map = list(csv.reader([p[len(DICT_MARKER):]]))[0]
-            elif SCHEMA_START in p:
-                inner = p[p.find(SCHEMA_START)+1 : p.rfind(SCHEMA_END)]
-                cols = re.split(r',(?![^(]*\))', inner)
-                for c in cols:
-                    if ':' not in c: continue
-                    k, v = c.split(':', 1)
-                    keys_order.append(k)
-                    headers[k] = self._parse_rule(v)
-
-        decoded = []
-        prev_vals = {k: None for k in keys_order}
+        if not lines:
+            return {}
         
-        for line in lines[1:]:
-            line = line.strip()
-            if not line: continue
-
-            if line.endswith(REPEAT_SUFFIX) and line[:-1].isdigit():
-                count = int(line[:-1])
-                for _ in range(count):
-                    row = {}
-                    curr = len(decoded)
-                    for k in keys_order:
-                        val = self._calc_val(headers[k], curr, prev_vals[k])
-                        row[k] = val
-                        prev_vals[k] = val
-                    decoded.append(self._unflatten(row))
+        metadata = {}
+        tables = {}
+        current_table = None
+        current_table_name = None
+        
+        for line in lines:
+            line = line.rstrip()
+            
+            # Skip blank lines
+            if not line:
                 continue
+            
+            # Table header: @hikes(2): id, name, sunny
+            if line.startswith(TABLE_MARKER):
+                current_table_name, current_table = self._parse_table_header(line)
+                tables[current_table_name] = current_table
+            
+            # Table row (if we're in a table)
+            elif current_table is not None and not META_SEPARATOR in line:
+                row = self._parse_table_row(line, current_table)
+                current_table['rows'].append(row)
+            
+            # Metadata line: key: value
+            elif META_SEPARATOR in line:
+                current_table = None  # Exit table mode
+                key, val = line.split(META_SEPARATOR, 1)
+                metadata[key.strip()] = self._parse_value(val.strip())
+        
+        # Recombine tables into metadata
+        for table_name, table in tables.items():
+            metadata[table_name] = self._reconstruct_table(table)
+        
+        # Unflatten dotted keys
+        result = self._unflatten(metadata)
+        
+        # Unwrap pure lists: if only key is 'data', return the list directly
+        if len(result) == 1 and 'data' in result and isinstance(result['data'], list):
+            return result['data']
+        
+        return result
 
-            clean = re.sub(r'^\$\d+:', '', line)
-            is_anchor = line.startswith(ANCHOR_PREFIX)
-            tokens = list(csv.reader([clean]))[0] if clean else []
-            if len(tokens) < len(keys_order): tokens.extend([""] * (len(keys_order) - len(tokens)))
+    def _parse_table_header(self, line: str) -> tuple:
+        """
+        Parse table header line.
+        
+        Format: @tablename(count): col1, col2, col3
+        
+        Args:
+            line: Header line
+            
+        Returns:
+            (table_name, table_info dict)
+        """
+        # Extract: @hikes(2): id, name, sunny
+        match = re.match(r'^' + re.escape(TABLE_MARKER) + r'(\w+)\((\d+)\)' + re.escape(META_SEPARATOR) + r'(.+)$', line)
+        if not match:
+            raise ZonDecodeError(f"Invalid table header: {line}")
+        
+        table_name = match.group(1)
+        count = int(match.group(2))
+        cols_str = match.group(3)
+        
+        # Parse column names
+        cols = [c.strip() for c in cols_str.split(',')]
+        
+        return table_name, {
+            'cols': cols,
+            'rows': [],
+            'prev_vals': {col: None for col in cols},
+            'row_index': 0
+        }
 
-            row = {}
-            curr = len(decoded)
-            for idx, k in enumerate(keys_order):
-                tok = tokens[idx]
-                rule = headers[k]
-                val = None
-                
-                if tok == "" and not is_anchor:
-                    val = self._calc_val(rule, curr, prev_vals[k])
-                elif tok.startswith(DICT_REF_PREFIX) and tok[1:].isdigit():
-                    val = self._unpack(dict_map[int(tok[1:])])
+    def _parse_table_row(self, line: str, table: Dict) -> Dict:
+        """
+        Parse a table row with compression token support.
+        
+        Args:
+            line: Row line (CSV format)
+            table: Table info from header
+            
+        Returns:
+            Decoded row dictionary
+        """
+        # Parse CSV tokens
+        tokens = list(csv.reader([line]))[0]
+        
+        # Pad if needed
+        while len(tokens) < len(table['cols']):
+            tokens.append('')
+        
+        row = {}
+        prev_vals = table['prev_vals']
+        row_idx = table['row_index']
+        
+        for i, (col, tok) in enumerate(zip(table['cols'], tokens)):
+            val = None
+            
+            if tok == GAS_TOKEN:
+                # Auto-increment: use previous + 1
+                if prev_vals[col] is not None and isinstance(prev_vals[col], (int, float)):
+                    val = prev_vals[col] + 1
                 else:
-                    val = self._unpack(tok)
-                    
-                    # Apply rule-specific transformations
-                    if rule['type'] == 'MULT' and isinstance(val, (int, float)):
-                        val = val / rule['factor']
-                    elif rule['type'] == 'ENUM' and isinstance(val, int):
-                        if 0 <= val < len(rule['enum_map']):
-                            val = rule['enum_map'][val]
-                    elif rule['type'] == 'DELTA' and isinstance(val, (int, float)) and curr > 0:
-                        val = prev_vals[k] + val if prev_vals[k] is not None else rule['base'] + val
-                
-                row[k] = val
-                prev_vals[k] = val
-            decoded.append(self._unflatten(row))
-        return decoded
-
-    def _parse_rule(self, v):
-        if v.startswith(RANGE_KEYWORD):
-            p = v[len(RANGE_KEYWORD)+1:-1].split(',')
-            return {'type': 'RANGE', 'start': float(p[0]), 'step': float(p[1])}
-        if v.startswith(PATTERN_KEYWORD):
-            args = v[len(PATTERN_KEYWORD)+1:-1]
-            lc = args.rfind(',')
-            slc = args.rfind(',', 0, lc)
-            return {'type': 'PATTERN', 'tpl': args[:slc], 'start': int(args[slc+1:lc]), 'step': int(args[lc+1:])}
-        if v.startswith(MULT_KEYWORD):
-            return {'type': 'MULT', 'factor': float(v[len(MULT_KEYWORD)+1:-1])}
-        if v.startswith(ENUM_KEYWORD):
-            # E(val1,val2,...)
-            inner = v[len(ENUM_KEYWORD)+1:-1]
-            enum_vals = list(csv.reader([inner]))[0]
-            enum_map = [self._unpack(ev) for ev in enum_vals]
-            return {'type': 'ENUM', 'enum_map': enum_map}
-        if v.startswith(VALUE_KEYWORD):
-            # V(default)
-            default_str = v[len(VALUE_KEYWORD)+1:-1]
-            return {'type': 'VALUE', 'default': self._unpack(default_str)}
-        if v.startswith(DELTA_KEYWORD):
-            # Δ(base)
-            base = float(v[len(DELTA_KEYWORD)+1:-1])
-            return {'type': 'DELTA', 'base': base}
-        if v == LIQUID_KEYWORD: 
-            return {'type': 'LIQUID'}
-        return {'type': 'SOLID'}
-
-    def _calc_val(self, rule, idx, prev):
-        if rule['type'] == 'RANGE': return rule['start'] + (idx * rule['step'])
-        if rule['type'] == 'PATTERN': return rule['tpl'].format(rule['start'] + (idx * rule['step']))
-        if rule['type'] == 'LIQUID': return prev
-        if rule['type'] == 'VALUE': return rule['default']
-        return prev
-
-    def _unpack(self, val):
-        if val == 'null': return None
-        if val == 'T': return True
-        if val == 'F': return False
+                    val = row_idx + 1
+            
+            elif tok == LIQUID_TOKEN:
+                # Repeat: use previous value
+                val = prev_vals[col]
+            
+            else:
+                # Explicit value
+                val = self._parse_value(tok)
+            
+            row[col] = val
+            prev_vals[col] = val
         
-        # Handle quoted strings (JSON format)
-        if val.startswith('"') and val.endswith('"'):
+        table['row_index'] += 1
+        return row
+
+    def _reconstruct_table(self, table: Dict) -> List[Dict]:
+        """
+        Reconstruct table from parsed rows.
+        
+        Args:
+            table: Table info with rows
+            
+        Returns:
+            List of dictionaries
+        """
+        return [self._unflatten(row) for row in table['rows']]
+
+    def _parse_value(self, val_str: str) -> Any:
+        """
+        Parse a value string to its native type.
+        
+        Args:
+            val_str: String representation
+            
+        Returns:
+            Parsed value
+        """
+        val_str = val_str.strip()
+        
+        if not val_str:
+            return None
+        
+        # Boolean
+        if val_str == 'T':
+            return True
+        if val_str == 'F':
+            return False
+        
+        # Null
+        if val_str == 'null':
+            return None
+        
+        # Compact array: [item1,item2,item3]
+        if val_str.startswith('[') and val_str.endswith(']'):
+            inner = val_str[1:-1]
+            if not inner:
+                return []
+            
+            # Split by comma, respecting quotes
+            items = []
+            current = []
+            in_quotes = False
+            
+            for char in inner:
+                if char == '"' and (not current or current[-1] != '\\'):
+                    in_quotes = not in_quotes
+                    current.append(char)
+                elif char == ',' and not in_quotes:
+                    item_str = ''.join(current).strip()
+                    items.append(self._parse_value(item_str))
+                    current = []
+                else:
+                    current.append(char)
+            
+            # Add last item
+            if current:
+                item_str = ''.join(current).strip()
+                items.append(self._parse_value(item_str))
+            
+            return items
+        
+        # JSON object
+        if val_str.startswith('{') and val_str.endswith('}'):
             try:
-                return json.loads(val)
-            except: pass
+                return json.loads(val_str)
+            except:
+                pass
         
-        # Try numeric
-        try: return int(val)
-        except: pass
-        try: return float(val)
-        except: pass
+        # Number
+        try:
+            if '.' in val_str:
+                return float(val_str)
+            return int(val_str)
+        except ValueError:
+            pass
         
-        return val
+        # JSON string (quoted) - including double-encoded JSON
+        if val_str.startswith('"') and val_str.endswith('"'):
+            try:
+                unquoted = json.loads(val_str)  # First unquote
+                # Check if the unquoted string is itself JSON
+                if isinstance(unquoted, str):
+                    # Try parsing as JSON (could be double-encoded object/array)
+                    if (unquoted.startswith('{') and unquoted.endswith('}')) or \
+                       (unquoted.startswith('[') and unquoted.endswith(']')):
+                        try:
+                            return json.loads(unquoted)  # Parse the JSON
+                        except:
+                            pass
+                return unquoted
+            except:
+                pass
+        
+        # Plain string (unquoted)
+        return val_str
 
-    def _decode_inline(self, lines):
-        res = []
-        for l in lines:
-            row = {}
-            for p in l.split(SEPARATOR):
-                if ':' in p:
-                    k, v = p.split(':', 1)
-                    row[k] = self._unpack(v)
-            res.append(self._unflatten(row))
-        return res
+    def _unflatten(self, d: Dict) -> Dict:
+        """
+        Unflatten dictionary with dotted keys.
+        
+        Works with depth-limited flattening - handles both:
+        - Dot notation: "meta.timestamp" -> {"meta": {"timestamp": ...}}
+        - JSON objects: "meta.context" with value {"ip": "...", "user_agent": "..."}
+        - Array indices: "items.0.id" -> {"items": [{"id": ...}]}
+        
+        Args:
+            d: Flattened dictionary
+            
+        Returns:
+            Nested dictionary
+        """
+        result = {}
+        
+        for key, value in d.items():
+            # Check if key has dot notation
+            if '.' not in key:
+                # Simple key, just assign
+                result[key] = value
+                continue
+                
+            parts = key.split('.')
+            target = result
+            
+            # Navigate/create nested structure
+            for i, part in enumerate(parts[:-1]):
+                next_part = parts[i + 1]
+                
+                # Check if next part is a number (array index)
+                if next_part.isdigit():
+                    idx = int(next_part)
+                    
+                    # Create array if needed
+                    if part not in target:
+                        target[part] = []
+                    
+                    # Extend array to accommodate index
+                    while len(target[part]) <= idx:
+                        target[part].append({})
+                    
+                    # Move into the indexed element
+                    target = target[part][idx]
+                    # Skip the numeric index in the path
+                    parts.pop(i + 1)
+                    break
+                else:
+                    # Regular nested object
+                    if part not in target:
+                        target[part] = {}
+                    
+                    # Only navigate deeper if it's a dict (not an already-parsed JSON object)
+                    if isinstance(target[part], dict):
+                        target = target[part]
+                    else:
+                        # Already has a value, can't navigate deeper
+                        break
+            
+            # Set the final value
+            final_key = parts[-1]
+            if not final_key.isdigit():  # Don't use numeric index as key
+                target[final_key] = value
+        
+        return result
 
-    def _unflatten(self, d, sep='.'):
-        res = {}
-        for k, v in d.items():
-            p = k.split('.')
-            t = res
-            for x in p[:-1]:
-                if x not in t:
-                    t[x] = {}
-                elif not isinstance(t[x], dict):
-                    # If intermediate value is not a dict, skip this key
-                    continue
-                t = t[x]
-            if isinstance(t, dict):  # Only assign if t is still a dict
-                t[p[-1]] = v
-        return res
 
-def decode(data):
+def decode(data: str) -> Any:
+    """
+    Convenience function to decode ZON v8.0 format to original data.
+    
+    Args:
+        data: ZON-encoded string
+        
+    Returns:
+        Decoded data
+    """
     return ZonDecoder().decode(data)

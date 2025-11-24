@@ -1,44 +1,20 @@
-# ZON Protocol Constants v1.0 (Entropy Engine)
-VERSION = "1.0"
-HEADER_PREFIX = "#Z:"
-ANCHOR_MARKER = "A="
-DICT_MARKER = "D="
-SEPARATOR = "|"
-SCHEMA_START = "{"
-SCHEMA_END = "}"
+# ZON Protocol Constants v8.0 (ClearText)
+VERSION = "8.0"
 
-RANGE_KEYWORD = "R"
-PATTERN_KEYWORD = "P"
-MULT_KEYWORD = "M"
-LIQUID_KEYWORD = "L"
-SOLID_KEYWORD = "S"
-ENUM_KEYWORD = "E"
-VALUE_KEYWORD = "V"
-DELTA_KEYWORD = "Δ"
+# Format markers
+TABLE_MARKER = "@"          # @hikes(3): col1, col2
+META_SEPARATOR = ":"        # key:value (no space for compactness)
 
-ANCHOR_PREFIX = "$"
-DICT_REF_PREFIX = "%"
-REPEAT_SUFFIX = "x"
+# Stream Tokens
+GAS_TOKEN = "_"             # Auto-increment token
+LIQUID_TOKEN = "^"          # Repeat previous value
 
+# Thresholds
 DEFAULT_ANCHOR_INTERVAL = 50
-INLINE_THRESHOLD_ROWS = 3
+SINGLETON_THRESHOLD = 1     # Flatten lists with 1 item to metadata
+INLINE_THRESHOLD_ROWS = 0
 
-# Legacy compatibility
-ZON_VERSION = "v6.0"
-HEADER_PREFIX_ALT = "#ZON"
-GAS_TOKEN = ""
-TOKEN_NULL = "NULL"
-DICT_MARKER_ALT = "%"
-INLINE_MARKER = "#ZON v6.0 INLINE"
-KEYWORD_DEF = "D"
-KEYWORD_RANGE = "R"
-KEYWORD_STEP = "S"
-KEYWORD_PATTERN = "P"
-KEYWORD_MULTIPLIER = "M"
-KEYWORD_LIQUID = "L"
-STATE_GAS = "GAS"
-STATE_LIQUID = "LIQUID"
-STATE_SOLID = "SOLID"
-STATE_PATTERN = "PATTERN"
-STATE_MULTIPLIER = "MULTIPLIER"
-DEFAULT_ANCHOR_EVERY = 50
+# Legacy compatibility (kept for potential fallback)
+DICT_REF_PREFIX = "%"
+ANCHOR_PREFIX = "$"
+REPEAT_SUFFIX = "x"

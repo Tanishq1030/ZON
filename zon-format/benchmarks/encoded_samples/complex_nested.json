@@ -1,0 +1,352 @@
+[
+  {
+    "id": "evt_0",
+    "meta": {
+      "timestamp": 1670000000,
+      "source": "web",
+      "context": {
+        "ip": "89.30.105.19",
+        "user_agent": "Mozilla/5.0 (compatible; MSIE 7.0; Windows NT 5.1; Trident/4.1)"
+      }
+    },
+    "payload": {
+      "user": {
+        "id": 1000,
+        "profile": {
+          "username": "harperjennifer",
+          "preferences": {
+            "theme": "dark",
+            "notifications": {
+              "email": true,
+              "push": false,
+              "sms": true
+            }
+          }
+        }
+      },
+      "data": {
+        "action": "click",
+        "target": "btn_1",
+        "coordinates": {
+          "x": 1835,
+          "y": 334
+        }
+      }
+    }
+  },
+  {
+    "id": "evt_1",
+    "meta": {
+      "timestamp": 1670000001,
+      "source": "mobile",
+      "context": {
+        "ip": "126.128.29.100",
+        "user_agent": null
+      }
+    },
+    "payload": {
+      "user": {
+        "id": 1001,
+        "profile": {
+          "username": "krose",
+          "preferences": {
+            "theme": "dark",
+            "notifications": {
+              "email": true,
+              "push": false,
+              "sms": false
+            }
+          }
+        }
+      },
+      "data": {
+        "action": "click",
+        "target": "btn_1",
+        "coordinates": {
+          "x": 405,
+          "y": 509
+        }
+      }
+    }
+  },
+  {
+    "id": "evt_2",
+    "meta": {
+      "timestamp": 1670000002,
+      "source": "api",
+      "context": {
+        "ip": "34.192.190.225",
+        "user_agent": "Mozilla/5.0 (compatible; MSIE 8.0; Windows 95; Trident/3.1)"
+      }
+    },
+    "payload": {
+      "user": {
+        "id": 1002,
+        "profile": {
+          "username": "kprice",
+          "preferences": {
+            "theme": "dark",
+            "notifications": {
+              "email": true,
+              "push": false,
+              "sms": false
+            }
+          }
+        }
+      },
+      "data": {
+        "action": "click",
+        "target": "btn_10",
+        "coordinates": {
+          "x": 1497,
+          "y": 432
+        }
+      }
+    }
+  },
+  {
+    "id": "evt_3",
+    "meta": {
+      "timestamp": 1670000003,
+      "source": "api",
+      "context": {
+        "ip": "177.68.223.145",
+        "user_agent": null
+      }
+    },
+    "payload": {
+      "user": {
+        "id": 1003,
+        "profile": {
+          "username": "matthewoneal",
+          "preferences": {
+            "theme": "dark",
+            "notifications": {
+              "email": true,
+              "push": false,
+              "sms": false
+            }
+          }
+        }
+      },
+      "data": {
+        "action": "click",
+        "target": "btn_10",
+        "coordinates": {
+          "x": 225,
+          "y": 819
+        }
+      }
+    }
+  },
+  {
+    "id": "evt_4",
+    "meta": {
+      "timestamp": 1670000004,
+      "source": "web",
+      "context": {
+        "ip": "134.213.231.13",
+        "user_agent": "Mozilla/5.0 (iPod; U; CPU iPhone OS 4_0 like Mac OS X; li-NL) AppleWebKit/533.40.7 (KHTML, like Gecko) Version/4.0.5 Mobile/8B116 Safari/6533.40.7"
+      }
+    },
+    "payload": {
+      "user": {
+        "id": 1004,
+        "profile": {
+          "username": "williamsalexander",
+          "preferences": {
+            "theme": "dark",
+            "notifications": {
+              "email": true,
+              "push": false,
+              "sms": false
+            }
+          }
+        }
+      },
+      "data": {
+        "action": "click",
+        "target": "btn_6",
+        "coordinates": {
+          "x": 1712,
+          "y": 776
+        }
+      }
+    }
+  },
+  {
+    "id": "evt_5",
+    "meta": {
+      "timestamp": 1670000005,
+      "source": "api",
+      "context": {
+        "ip": "180.51.183.54",
+        "user_agent": null
+      }
+    },
+    "payload": {
+      "user": {
+        "id": 1005,
+        "profile": {
+          "username": "courtney54",
+          "preferences": {
+            "theme": "dark",
+            "notifications": {
+              "email": true,
+              "push": false,
+              "sms": true
+            }
+          }
+        }
+      },
+      "data": {
+        "action": "click",
+        "target": "btn_5",
+        "coordinates": {
+          "x": 1383,
+          "y": 148
+        }
+      }
+    }
+  },
+  {
+    "id": "evt_6",
+    "meta": {
+      "timestamp": 1670000006,
+      "source": "web",
+      "context": {
+        "ip": "51.181.155.146",
+        "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 15_8_2 like Mac OS X) AppleWebKit/534.2 (KHTML, like Gecko) CriOS/34.0.833.0 Mobile/94G015 Safari/534.2"
+      }
+    },
+    "payload": {
+      "user": {
+        "id": 1006,
+        "profile": {
+          "username": "bernardchristine",
+          "preferences": {
+            "theme": "dark",
+            "notifications": {
+              "email": true,
+              "push": false,
+              "sms": false
+            }
+          }
+        }
+      },
+      "data": {
+        "action": "click",
+        "target": "btn_6",
+        "coordinates": {
+          "x": 650,
+          "y": 933
+        }
+      }
+    }
+  },
+  {
+    "id": "evt_7",
+    "meta": {
+      "timestamp": 1670000007,
+      "source": "web",
+      "context": {
+        "ip": "111.6.17.193",
+        "user_agent": null
+      }
+    },
+    "payload": {
+      "user": {
+        "id": 1007,
+        "profile": {
+          "username": "llopez",
+          "preferences": {
+            "theme": "dark",
+            "notifications": {
+              "email": true,
+              "push": false,
+              "sms": false
+            }
+          }
+        }
+      },
+      "data": {
+        "action": "click",
+        "target": "btn_5",
+        "coordinates": {
+          "x": 3,
+          "y": 406
+        }
+      }
+    }
+  },
+  {
+    "id": "evt_8",
+    "meta": {
+      "timestamp": 1670000008,
+      "source": "mobile",
+      "context": {
+        "ip": "7.23.15.85",
+        "user_agent": "Mozilla/5.0 (compatible; MSIE 8.0; Windows 95; Trident/5.1)"
+      }
+    },
+    "payload": {
+      "user": {
+        "id": 1008,
+        "profile": {
+          "username": "joy26",
+          "preferences": {
+            "theme": "dark",
+            "notifications": {
+              "email": true,
+              "push": false,
+              "sms": false
+            }
+          }
+        }
+      },
+      "data": {
+        "action": "click",
+        "target": "btn_6",
+        "coordinates": {
+          "x": 1534,
+          "y": 61
+        }
+      }
+    }
+  },
+  {
+    "id": "evt_9",
+    "meta": {
+      "timestamp": 1670000009,
+      "source": "mobile",
+      "context": {
+        "ip": "15.166.83.229",
+        "user_agent": null
+      }
+    },
+    "payload": {
+      "user": {
+        "id": 1009,
+        "profile": {
+          "username": "brownchristopher",
+          "preferences": {
+            "theme": "dark",
+            "notifications": {
+              "email": true,
+              "push": false,
+              "sms": false
+            }
+          }
+        }
+      },
+      "data": {
+        "action": "click",
+        "target": "btn_6",
+        "coordinates": {
+          "x": 1915,
+          "y": 12
+        }
+      }
+    }
+  }
+]

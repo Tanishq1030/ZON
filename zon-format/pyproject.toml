@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "zon-format"
-version = "1.0.0"
-description = "Zero Overhead Notation - Human-readable data serialization optimized for LLM token efficiency"
+version = "1.0.1"
+description = "Zero Overhead Notation v8.0 (ClearText) - Human-readable data format with 30%+ compression over JSON"
 readme = "README.md"
 requires-python = ">=3.8"
-license = {text = "Proprietary"}
+license = {text = "Apache-2.0"}
 authors = [
     {name = "Roni Bhakta", email = "ronibhakta1@gmail.com"}
 ]
