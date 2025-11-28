@@ -260,26 +260,72 @@ ZON is **immune to code injection attacks**:
 
 ## Benchmarks
 
-### Token Efficiency (Unified Dataset)
+### Retrieval Accuracy
 
+Benchmarks test LLM comprehension using 24 data retrieval questions on gpt-5-nano (Azure OpenAI).
+
+| Format | Accuracy | Tokens | Efficiency Score |
+|--------|----------|--------|------------------|
+| **ZON** | **100.0%** | 19,995 | 123.2 acc%/10K 👑 |
+| TOON | 100.0% | 20,988 | 118.0 acc%/10K |
+| CSV | 100.0% | ~20,500 | ~117 acc%/10K |
+| JSON compact | 91.7% | 27,300 | 82.1 acc%/10K |
+| JSON | 91.7% | 28,042 | 78.5 acc%/10K |
+
+> ZON achieves **100% accuracy** (vs JSON's 91.7%) while using **29% fewer tokens**.
+
+### Token Efficiency Benchmark
+
+**Tokenizers:** GPT-4o (o200k), Claude 3.5 (Anthropic), Llama 3 (Meta)
+
+#### Unified Dataset
 ```
 GPT-4o (o200k):
-  ZON          ████████████████████ 522 tokens 👑
-  JSON (cmp)   ████████████████████████ 589 tokens (+11.4%)
-  YAML         ███████████████████████████████ 728 tokens (+39.5%)
 
-Claude 3.5:
-  ZON          ████████████████████ 545 tokens
-  JSON (cmp)   ████████████████████████ 596 tokens (+8.6%)
-  YAML         ██████████████████████████ 641 tokens (+17.6%)
+    ZON          ██████████░░░░░░░░░░ 522 tokens 👑
+    CSV          ██████████░░░░░░░░░░ 534 tokens (+2.3%)
+    JSON (cmp)   ███████████░░░░░░░░░ 589 tokens (+11.4%)
+    TOON         ███████████░░░░░░░░░ 614 tokens (+17.6%)
+    YAML         █████████████░░░░░░░ 728 tokens (+39.5%)
+    JSON format  ████████████████████ 939 tokens (+44.4%)
+    XML          ████████████████████ 1,093 tokens (+109.4%)
 
-Llama 3:
-  ZON          ████████████████████ 701 tokens 👑
-  JSON (cmp)   █████████████████████ 760 tokens (+7.8%)
-  YAML         ███████████████████████████ 894 tokens (+27.5%)
+Claude 3.5 (Anthropic): 
+
+    CSV          ██████████░░░░░░░░░░ 544 tokens 👑
+    ZON          ██████████░░░░░░░░░░ 545 tokens (+0.2%)
+    TOON         ██████████░░░░░░░░░░ 570 tokens (+4.6%)
+    JSON (cmp)   ███████████░░░░░░░░░ 596 tokens (+8.6%)
+    YAML         ████████████░░░░░░░░ 641 tokens (+17.6%)
+
+Llama 3 (Meta):
+
+    ZON          ██████████░░░░░░░░░░ 701 tokens 👑
+    CSV          ██████████░░░░░░░░░░ 728 tokens (+3.9%)
+    JSON (cmp)   ███████████░░░░░░░░░ 760 tokens (+7.8%)
+    TOON         ███████████░░░░░░░░░ 784 tokens (+11.8%)
+    YAML         █████████████░░░░░░░ 894 tokens (+27.5%)
 ```
 
-**Average savings: 15-35% vs JSON** across all tokenizers.
+#### Large Complex Nested Dataset
+```
+GPT-4o (o200k):
+
+    ZON          █████░░░░░░░░░░░░░░░ 147,267 tokens 👑
+    CSV          ██████░░░░░░░░░░░░░░ 165,647 tokens (+12.5%)
+    JSON (cmp)   ███████░░░░░░░░░░░░░ 189,193 tokens (+28.4%)
+    TOON         █████████░░░░░░░░░░░ 225,510 tokens (+53.1%)
+```
+
+### Overall Summary
+
+| Tokenizer | ZON vs TOON | ZON vs JSON |
+|-----------|-------------|-------------|
+| GPT-4o | **-34.7%** fewer tokens | **-22.2%** fewer tokens |
+| Claude 3.5 | **-24.4%** fewer tokens | **-19.6%** fewer tokens |
+| Llama 3 | **-25.7%** fewer tokens | **-15.3%** fewer tokens |
+
+**Key Insight:** ZON is the only format that wins or nearly wins across all models & datasets.
 
 ---
 
@@ -316,6 +362,43 @@ zon_products = zon.encode(products)
 
 # Use in your LangChain prompts with fewer tokens!
 ```
+
+---
+
+## Documentation
+
+Comprehensive guides and references are available in the [`docs/`](./docs/) directory:
+
+### 📖 [Syntax Cheatsheet](./docs/syntax-cheatsheet.md)
+Quick reference for ZON format syntax with practical examples.
+- Basic types and primitives (strings, numbers, booleans, null)
+- Objects and nested structures
+- Arrays (tabular, inline, mixed)
+- Quoting rules and escape sequences
+- Complete examples with JSON comparisons
+
+### 🔧 [API Reference](./docs/api-reference.md)
+Complete API documentation for `zon-format` v1.0.3.
+- `encode()` function - detailed parameters and examples
+- `decode()` function - strict mode options and error handling
+- Python type definitions
+- Error codes and security limits
+
+### 📘 [Complete Specification](./docs/SPEC.md)
+Comprehensive formal specification including:
+- Data model and encoding rules
+- Security model (DOS prevention, no eval)
+- Data type system and preservation guarantees
+- Conformance checklists
+- Media type specification (`.zonf`, `text/zon`)
+
+### 🤖 [LLM Best Practices](./docs/llm-best-practices.md)
+Guide for maximizing ZON's effectiveness in LLM applications.
+- Prompting strategies for LLMs
+- Common use cases (data retrieval, aggregation, filtering)
+- Optimization tips for token usage
+- Model-specific tips (GPT-4, Claude, Llama)
+- Complete real-world examples
 
 ---
 
