@@ -468,17 +468,19 @@ class ZonEncoder:
                     return "null"  # NaN, Infinity, -Infinity → null
             
             # Canonical number formatting - avoid scientific notation
-            if isinstance(val, int) or (isinstance(val, float) and val.is_integer() and not isinstance(val, bool)):
-                if isinstance(val, int):
-                    return str(val)
-                # Float that looks like integer
+            if isinstance(val, int):
+                return str(val)
+            
+            # Float handling
+            if isinstance(val, float) and val.is_integer():
+                # Float that looks like integer (e.g., 42.0)
                 s = str(val)
                 if 'e' in s.lower():
                     # Convert from scientific notation
-                    return str(int(val))
+                    return str(int(val)) + '.0'
                 return s
             
-            # For floats, format without trailing zeros
+            # For floats with fractional parts
             s = str(val)
             
             # Check if it's in scientific notation
@@ -490,16 +492,16 @@ class ZonEncoder:
                 
                 if exponent >= 0:
                     # Positive exponent - multiply
-                    s = str(mantissa * (10 ** exponent))
-                else:
-                    # Negative exponent - use format
-                    s = format(val, f'.{abs(exponent) + 6}f').rstrip('0').rstrip('.')
+                    result = mantissa * (10 ** exponent)
+                    s = str(result)
                     if '.' not in s:
                         s += '.0'
-            
-            # Ensure decimal point for floats
-            if '.' not in s:
-                s += '.0'
+                else:
+                    # Negative exponent - use format
+                    s = format(val, f'.{abs(exponent) + 6}f').rstrip('0')
+                    # Make sure we have at least one decimal place
+                    if s.endswith('.'):
+                        s += '0'
             
             return s
 

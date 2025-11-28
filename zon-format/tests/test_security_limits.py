@@ -58,9 +58,9 @@ class TestSecurityLimits(unittest.TestCase):
     def test_e304_allow_objects_under_100k_keys(self):
         """Should allow objects under 100K keys."""
         keys = ','.join([f'k{i}:{i}' for i in range(100)])
-        zon_data = f'data:"{{{{ {keys} }}}}"'
+        zon_data = f'data:"{{{{{keys}}}}}"'
         
-        result = zon.decode(f'data:"{{{keys}}}"')
+        result = zon.decode(zon_data)
         self.assertIn('data', result)
 
     def test_nesting_depth_limit_throw(self):

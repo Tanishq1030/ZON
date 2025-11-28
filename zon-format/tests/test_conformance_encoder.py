@@ -5,7 +5,6 @@ Port of conformance-encoder.test.ts from the TypeScript implementation.
 Tests based on FORMAL_SPEC.md §11.1 Encoder Checklist.
 """
 import unittest
-import math
 import sys
 import os
 
