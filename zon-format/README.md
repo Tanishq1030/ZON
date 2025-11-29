@@ -3,7 +3,7 @@
 [![PyPI version](https://img.shields.io/pypi/v/zon-format.svg)](https://pypi.org/project/zon-format/)
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![Tests](https://img.shields.io/badge/tests-93%2F93%20passing-brightgreen.svg)](#quality--testing)
-[![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 **Zero Overhead Notation** - A compact, human-readable way to encode JSON for LLMs.
 
@@ -445,7 +445,7 @@ Contributions welcome! Please:
 
 ## License
 
-**Apache 2.0 License**
+**MIT License**
 
 Copyright (c) 2025 ZON-FORMAT (Roni Bhakta)
 
