@@ -6,7 +6,7 @@ Guide for maximizing ZON's effectiveness in LLM applications.
 
 ## Why ZON for LLMs?
 
-LLM API costs are directly tied to token count. ZON reduces tokens by **29% vs JSON** while achieving **100% retrieval accuracy**.
+LLM API costs are directly tied to token count. ZON reduces tokens by **23.8% vs JSON** while achieving **100% retrieval accuracy**.
 
 **Key Benefits:**
 - 💰 **Lower costs**: Fewer tokens = lower API bills
@@ -177,7 +177,7 @@ Find all in-stock Electronics with rating above 4.0.
 
 ````
 ```zon
-metadata:"{version:1.0.3,env:production,deployed:2025-01-15}"
+metadata:"{version:1.0.4,env:production,deployed:2025-01-15}"
 users:@(5):id,name,active
 1,Alice,T
 2,Bob,F

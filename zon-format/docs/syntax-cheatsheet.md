@@ -2,7 +2,7 @@
 
 Copyright (c) 2025 ZON-FORMAT (Roni Bhakta)
 
-Quick reference for ZON format syntax. Cross-referenced with actual implementation in v1.0.3.
+Quick reference for ZON format syntax. Cross-referenced with actual implementation in v1.0.4.
 
 ## Basic Types
 
@@ -29,7 +29,7 @@ value:null
 ```zon
 # Simple object
 name:ZON Format
-version:1.0.3
+version:1.0.4
 active:T
 score:98.5
 ```
@@ -38,7 +38,7 @@ score:98.5
 ```json
 {
   "name": "ZON Format",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "active": true,
   "score": 98.5
 }
@@ -46,19 +46,15 @@ score:98.5
 
 ### Nested Objects
 
+**Colon-less Syntax (v2.0.5):**
 ```zon
-# Nested quoted
-config:"{database:{host:localhost,port:5432},cache:{ttl:3600,enabled:T}}"
+# Colon is optional if value starts with { or [
+config{database{host:localhost,port:5432},cache{ttl:3600,enabled:T}}
 ```
 
-**JSON equivalent:**
-```json
-{
-  "config": {
-    "database": { "host": "localhost", "port": 5432 },
-    "cache": { "ttl": 3600, "enabled": true }
-  }
-}
+**Legacy Quoted (v1.x):**
+```zon
+config:"{database:{host:localhost,port:5432}}"
 ```
 
 ---
@@ -176,11 +172,11 @@ users:@(2):id,name,active
 
 ## Type Conversions
 
-| ZON | Python | Notes |
-|-----|--------|-------|
-| `T` | `True` | Boolean true |
-| `F` | `False` | Boolean false |
-| `null` | `None` | Null value |
+| ZON | JSON | Notes |
+|-----|------|-------|
+| `T` | `true` | Boolean true |
+| `F` | `false` | Boolean false |
+| `null` | `null` | Null value |
 | `42` | `42` | Number (integer) |
 | `3.14` | `3.14` | Number (float) |  
 | `hello` | `"hello"` | Unquoted string |
@@ -194,7 +190,7 @@ users:@(2):id,name,active
 
 ```zon
 environment:production
-version:"1.0.3"
+version:"1.0.4"
 database:"{host:db.example.com,port:5432,ssl:T}"
 features:"{darkMode:F,betaAccess:T}"
 ```
@@ -242,7 +238,7 @@ path:"C:\\Users\\data"
 **JSON:**
 ```json
 {
-  "metadata": { "version": "1.0.3", "env": "production" },
+  "metadata": { "version": "1.0.4", "env": "production" },
   "users": [
     { "id": 1, "name": "Alice", "active": true, "loginCount": 42 },
     { "id": 2, "name": "Bob", "active": true, "loginCount": 17 },
@@ -254,12 +250,12 @@ path:"C:\\Users\\data"
 
 **ZON:**
 ```zon
-metadata:"{version:1.0.3,env:production}"
+metadata{version:1.0.4,env:production}
 users:@(3):active,id,loginCount,name
 T,1,42,Alice
 T,2,17,Bob
 F,3,3,Carol
-config:"{database:{host:localhost,port:5432}}"
+config.database{host:localhost,port:5432}
 ```
 
 **Token count:**
@@ -307,6 +303,6 @@ Question: How many active users are there?
 ---
 
 **See also:**
-- [Format Specification](./SPEC.md) - Formal grammar
+- [Format Specification](../SPEC.md) - Formal grammar
 - [API Reference](./api-reference.md) - encode/decode functions
 - [LLM Best Practices](./llm-best-practices.md) - Usage guide

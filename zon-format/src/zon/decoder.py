@@ -1,5 +1,5 @@
 """
-ZON Decoder v1.0.3 - Compact Hybrid Format
+ZON Decoder v1.0.4 - Compact Hybrid Format
 
 Supports both v1.x and v2.0.0 formats:
 - v2.0: Compact headers (@count:), sequential ID reconstruction, sparse tables
@@ -7,6 +7,7 @@ Supports both v1.x and v2.0.0 formats:
 - Strict mode with E001/E002 error codes
 - Security limits (document size, line length, array length, object keys)
 - Nesting depth limit
+- Control character handling
 """
 
 import json

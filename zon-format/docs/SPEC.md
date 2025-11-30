@@ -2,7 +2,7 @@
 
 ## Zero Overhead Notation - Formal Specification
 
-**Version:** 1.0.3
+**Version:** 1.0.4
 
 **Date:** 2025-11-28
 
@@ -16,13 +16,33 @@
 
 ## Abstract
 
-Zero Overhead Notation (ZON) is a compact, line-oriented text format that encodes the JSON data model with minimal redundancy optimized for large language model token efficiency. ZON achieves 35-50% token reduction compared to JSON through single-character primitives (`T`, `F`), null as `null`, explicit table markers (`@`), and intelligent quoting rules. Arrays of uniform objects use tabular encoding with column headers declared once; metadata uses flat key-value pairs. This specification defines ZON's concrete syntax, canonical value formatting, encoding/decoding behavior, conformance requirements, and strict validation rules. ZON provides deterministic, lossless representation achieving 100% LLM retrieval accuracy in benchmarks.
+Zero Overhead Notation (ZON) is a compact, line-oriented text format that encodes the JSON data model with minimal redundancy optimized for large language model token efficiency. ZON achieves up to 23.8% token reduction compared to JSON through single-character primitives (`T`, `F`), null as `null`, explicit table markers (`@`), colon-less nested structures, and intelligent quoting rules. Arrays of uniform objects use tabular encoding with column headers declared once; metadata uses flat key-value pairs. This specification defines ZON's concrete syntax, canonical value formatting, encoding/decoding behavior, conformance requirements, and strict validation rules. ZON provides deterministic, lossless representation achieving 100% LLM retrieval accuracy in benchmarks.
 
 ## Status of This Document
 
-This document is a **Stable Release v1.0.3** and defines normative behavior for ZON encoders, decoders, and validators. Implementation feedback should be reported at https://github.com/ZON-Format/ZON.
+This document is a **Stable Release v1.0.4** and defines normative behavior for ZON encoders, decoders, and validators. Implementation feedback should be reported at https://github.com/ZON-Format/ZON.
 
 Backward compatibility is maintained across v1.0.x releases. Major versions (v2.x) may introduce breaking changes.
+
+## Normative References
+
+**[RFC2119]** Bradner, S., "Key words for use in RFCs to Indicate Requirement Levels", BCP 14, RFC 2119, March 1997.  
+https://www.rfc-editor.org/rfc/rfc2119
+
+**[RFC8174]** Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words", BCP 14, RFC 8174, May 2017.  
+https://www.rfc-editor.org/rfc/rfc8174
+
+**[RFC8259]** Bray, T., "The JavaScript Object Notation (JSON) Data Interchange Format", STD 90, RFC 8259, December 2017.  
+https://www.rfc-editor.org/rfc/rfc8259
+
+## Informative References
+
+**[RFC4180]** Shafranovich, Y., "Common Format and MIME Type for Comma-Separated Values (CSV) Files", RFC 4180, October 2005.  
+https://www.rfc-editor.org/rfc/rfc4180
+
+**[ISO8601]** ISO 8601:2019, "Date and time — Representations for information interchange".
+
+**[UNICODE]** The Unicode Consortium, "The Unicode Standard", Version 15.1, September 2023.
 
 ---
 
@@ -47,7 +67,8 @@ Backward compatibility is maintained across v1.0.x releases. Major versions (v2.
 17. [Internationalization](#16-internationalization)
 18. [Interoperability](#17-interoperability)
 19. [Media Type](#18-media-type)
-20. [Appendices](#appendices)
+20. [Error Handling](#19-error-handling)
+21. [Appendices](#appendices)
 
 ---
 
@@ -72,6 +93,7 @@ ZON addresses token bloat in JSON while maintaining structural fidelity. By decl
 - LLM prompt contexts (RAG, few-shot examples)
 - Log storage and analysis
 - Configuration files
+- Browser storage (localStorage)
 - Tabular data interchange
 - **Complex nested data structures** (ZON excels here)
 
@@ -98,7 +120,11 @@ F,2,Bob
 
 ## 1. Terminology and Conventions
 
-### 1.1 Definitions
+### 1.1 RFC2119 Keywords
+
+The keywords **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **SHOULD**, **SHOULD NOT**, **RECOMMENDED**, **MAY**, and **OPTIONAL** are interpreted per [RFC2119] and [RFC8174].
+
+### 1.2 Definitions
 
 **ZON document** - UTF-8 text conforming to this specification
 
@@ -151,6 +177,11 @@ ZON encodes the JSON data model:
    - `float('inf')` → `null`
    - `float('-inf')` → `null`
 
+**Implementation:**
+- Integers: Use standard string representation
+- Floats: Ensure decimal point present, convert exponents to fixed-point
+- Special values: Normalized to `null` before encoding
+
 **Examples:**
 ```
 1000000      ✓ (not 1e6 or 1e+6)
@@ -159,6 +190,18 @@ ZON encodes the JSON data model:
 42           ✓ (integer, no decimal)
 null         ✓ (was NaN or Infinity)
 ```
+
+**Scientific notation:**
+```
+1e6     ⚠️  Decoders MUST accept, encoders SHOULD avoid (prefer 1000000)
+2.5E-3  ⚠️  Decoders MUST accept, encoders SHOULD avoid (prefer 0.0025)
+```
+
+**Requirements:**
+- Encoders MUST ensure `decode(encode(x)) === x` (round-trip fidelity)
+- No trailing zeros in fractional part (except `.0` for float clarity)
+- No leading zeros (except standalone `0`)
+- `-0` normalizes to `0`
 
 ### 2.4 Special Values
 
@@ -220,6 +263,13 @@ Only these escapes are valid:
 - `\r` → carriage return
 - `\t` → tab
 
+**Invalid escapes MUST error:**
+```
+"\x41"      ❌ Invalid
+"\u0041"    ❌ Invalid (use literal UTF-8)
+"\b"        ❌ Invalid
+```
+
 ### 4.3 Leading Zeros
 
 Numbers with leading zeros are strings:
@@ -257,6 +307,35 @@ name:Alice
 age:30
 ```
 
+**Root primitive:**
+```zon
+42
+```
+
+### 5.3 ABNF Grammar
+
+```abnf
+document     = object-form / table-form / primitive-form
+object-form  = *(key-value / table-section)
+table-form   = table-header 1*data-row
+primitive-form = value
+
+key-value    = key ":" value LF
+table-header = [key ":"] "@" "(" count ")" ":" column-list LF
+table-section = table-header 1*data-row
+data-row     = value *("," value) LF
+
+key          = unquoted-string / quoted-string
+value        = primitive / quoted-compound
+primitive    = "T" / "F" / "null" / number / unquoted-string
+quoted-compound = quoted-string  ; Contains JSON-like notation
+
+column-list  = column *("," column)
+column       = key
+count        = 1*DIGIT
+number       = ["-"] 1*DIGIT ["." 1*DIGIT] [("e"/"E") ["+"/"-"] 1*DIGIT]
+```
+
 ---
 
 ## 6. Primitives
@@ -282,6 +361,8 @@ age:30
 - `null` → `None`
 - Also accepts (case-insensitive): `none`, `nil`
 
+**Rationale:** Clarity and readability over minimal compression
+
 ### 6.3 Numbers
 
 **Examples:**
@@ -292,6 +373,13 @@ score:-42
 temp:98.6
 large:1000000
 ```
+
+**Rules:**
+- Integers without decimal: `42`
+- Floats with decimal: `3.14`
+- Negatives with `-` prefix: `-17`
+- No thousands separators
+- Decimal separator is `.` (period)
 
 ---
 
@@ -305,7 +393,7 @@ Pattern: `^[a-zA-Z0-9_\-\.]+$`
 ```zon
 name:Alice
 user_id:u123
-version:v1.0.3
+version:v1.0.4
 api-key:sk_test_key
 ```
 
@@ -315,10 +403,20 @@ Quote strings if they:
 
 1. **Contain structural chars:** `,`, `:`, `[`, `]`, `{`, `}`, `"`
 2. **Match literal keywords:** `T`, `F`, `true`, `false`, `null`, `none`, `nil`
-3. **Look like numbers:** `123`, `3.14`, `1e6`
-4. **Have whitespace:** Leading/trailing spaces
-5. **Are empty:** `""` (MUST quote)
-6. **Contain escapes:** Newlines, tabs, quotes
+3. **Look like PURE numbers:** `123`, `3.14`, `1e6` (Complex patterns like `192.168.1.1` or `v1.0.5` do NOT need quoting)
+4. **Have whitespace:** Leading/trailing spaces, internal spaces (MUST quote to preserve)
+5. **Are empty:** `""` (MUST quote to distinguish from `null`)
+6. **Contain escapes:** Newlines, tabs, quotes (MUST quote to prevent structure breakage)
+
+**Examples:**
+```zon
+message:"Hello, world"
+path:"C:\Users\file"
+empty:""
+quoted:"true"
+number:"123"
+spaces:" padded "
+```
 
 ### 7.3 ISO Date Optimization
 
@@ -328,6 +426,8 @@ created:2025-11-28
 timestamp:2025-11-28T10:00:00Z
 time:10:30:00
 ```
+
+Decoders interpret these as strings (not parsed as Date objects unless application logic does so).
 
 ---
 
@@ -341,12 +441,22 @@ age:30
 name:Alice
 ```
 
+Decodes to:
+```json
+{"active": true, "age": 30, "name": "Alice"}
+```
+
 ### 8.2 Nested Objects
 
 Quoted compound notation:
 
 ```zon
 config:"{database:{host:localhost,port:5432},cache:{ttl:3600}}"
+```
+
+Alternatively using JSON string:
+```zon
+config:"{"database":{"host":"localhost","port":5432}}"
 ```
 
 ### 8.3 Empty Objects
@@ -373,12 +483,29 @@ metadata:"{}"
 tags:"[python,llm,zon]"
 numbers:"[1,2,3,4,5]"
 flags:"[T,F,T]"
+mixed:"[hello,123,T,null]"
 ```
 
 **Empty:**
 ```zon
 items:"[]"
 ```
+
+### 9.3 Irregularity Threshold
+
+**Uniform detection:**
+
+Calculate irregularity score:
+```
+For each pair of objects (i, j):
+  similarity = shared_keys / (keys_i + keys_j - shared_keys)  # Jaccard
+Avg_similarity = mean(all_similarities)
+Irregularity = 1 - avg_similarity
+```
+
+**Threshold:**
+- If irregularity > 0.6 → Use inline format
+- If irregularity ≤ 0.6 → Use table format
 
 ---
 
@@ -427,7 +554,7 @@ T,1,Alice,admin
 - Field count MUST equal column count (strict mode)
 - Missing values encode as `null`
 
-### 10.4 Sparse Tables
+### 10.4 Sparse Tables (v2.0)
 
 Optional fields append as `key:value`:
 
@@ -436,6 +563,11 @@ users:@(3):id,name
 1,Alice
 2,Bob,role:admin,score:98
 3,Carol
+```
+
+**Row 2 decodes to:**
+```json
+{"id": 2, "name": "Bob", "role": "admin", "score": 98}
 ```
 
 ---
@@ -464,6 +596,13 @@ quote:"She said \"Hi\""
 backslash:"C:\\path\\file"
 ```
 
+**Valid escapes:**
+- `\\` → `\`
+- `\"` → `"`
+- `\n` → newline
+- `\r` → CR
+- `\t` → tab
+
 ### 11.3 Unicode
 
 Use literal UTF-8 (no `\uXXXX` escapes):
@@ -484,12 +623,14 @@ Encoders MUST:
 - Use LF (`\n`) line endings
 - NOT emit trailing whitespace on lines
 - NOT emit trailing newline at EOF (RECOMMENDED)
+- MAY emit one blank line between metadata and table
 
 ### 12.2 Decoding Rules
 
 Decoders SHOULD:
 - Accept LF or CRLF (normalize to LF)
 - Ignore trailing whitespace per line
+- Treat multiple blank lines as single separator
 
 ---
 
@@ -553,29 +694,86 @@ Enforces:
 
 ---
 
-## 14. Strict Mode Errors
+## 14. Schema Validation (LLM Evals)
 
-### 14.1 Table Errors
+ZON includes a runtime schema validation library designed for LLM guardrails. It allows defining expected structures and validating LLM outputs against them.
+
+### 14.1 Schema Definition
+
+```python
+from zon import zon
+
+UserSchema = zon.object({
+    'name': zon.string().describe("Full name"),
+    'age': zon.number(),
+    'role': zon.enum(['admin', 'user']),
+    'tags': zon.array(zon.string()).optional()
+})
+```
+
+### 14.2 Prompt Generation
+
+Schemas can generate system prompts to guide LLMs:
+
+```python
+prompt = UserSchema.to_prompt()
+# Output:
+# object:
+#   - name: string - Full name
+#   - age: number
+#   - role: enum(admin, user)
+#   - tags: array of [string] (optional)
+```
+
+### 14.3 Validation
+
+```python
+from zon import validate
+
+result = validate(llm_output_string, UserSchema)
+
+if result.success:
+    print(result.data)  # Typed data
+else:
+    print(result.error)  # "Expected number at age, got string"
+```
+
+---
+
+## 15. Strict Mode Errors
+
+### 15.1 Table Errors
 
 | Code | Error | Example |
 |------|-------|---------|
 | **E001** | Row count mismatch | `@(2)` but 3 rows |
 | **E002** | Field count mismatch | 3 columns, row has 2 values |
+| **E003** | Malformed header | Missing `@`, `(N)`, or `:` |
+| **E004** | Invalid column name | Unescaped special chars |
 
-### 14.2 Security Limit Errors
+### 15.2 Syntax Errors
 
 | Code | Error | Example |
 |------|-------|---------|
-| **E301** | Document size > 100MB | Prevents memory exhaustion |
-| **E302** | Line length > 1MB | Prevents buffer overflow |
-| **E303** | Array length > 1M items | Prevents excessive iteration |
-| **E304** | Object key count > 100K | Prevents hash collision |
+| **E101** | Invalid escape | `"\x41"` instead of `"A"` |
+| **E102** | Unterminated string | `"hello` (no closing quote) |
+| **E103** | Missing colon | `name Alice` → `name:Alice` |
+| **E104** | Empty key | `:value` |
+
+### 15.3 Format Errors
+
+| Code | Error | Example |
+|------|-------|---------|
+| **E201** | Trailing whitespace | Line ends with spaces |
+| **E202** | CRLF line ending | `\r\n` instead of `\n` |
+| **E203** | Multiple blank lines | More than one consecutive |
+| **E204** | Trailing newline | Document ends with `\n` |
 
 ---
 
-## 15. Security Considerations
+## 16. Security Considerations
 
-### 15.1 Resource Limits
+### 16.1 Resource Limits
 
 Implementations SHOULD limit:
 - Document size: 100 MB
@@ -586,43 +784,40 @@ Implementations SHOULD limit:
 
 Prevents denial-of-service attacks.
 
-### 15.2 Validation
+### 16.2 Validation
 
 - Validate UTF-8 strictly
 - Error on invalid escapes
 - Reject malformed numbers
 - Limit recursion depth
 
-### 15.3 Injection Prevention
+### 16.3 Injection Prevention
 
 ZON does not execute code. Applications MUST sanitize before:
 - SQL queries
 - Shell commands
 - HTML rendering
 
-### 15.4 Prototype Pollution Prevention
-
-Decoders MUST reject keys that could cause prototype pollution:
-- `__proto__`
-- `constructor`
-- `prototype`
-
 ---
 
-## 16. Internationalization
+## 17. Internationalization
 
-### 16.1 Character Encoding
+### 17.1 Character Encoding
 
 **REQUIRED:** UTF-8 without BOM
 
-### 16.2 Unicode
+Decoders MUST:
+- Reject invalid UTF-8
+- Reject BOM (U+FEFF) at start
+
+### 17.2 Unicode
 
 Full Unicode support:
 - Emoji: `✅`, `🚀`
 - CJK: `王小明`, `日本語`
 - RTL: `مرحبا`, `שלום`
 
-### 16.3 Locale Independence
+### 17.3 Locale Independence
 
 - Decimal separator: `.` (period)
 - No thousands separators
@@ -630,9 +825,9 @@ Full Unicode support:
 
 ---
 
-## 17. Interoperability
+## 18. Interoperability
 
-### 17.1 JSON
+### 18.1 JSON
 
 **ZON → JSON:** Lossless  
 **JSON → ZON:** Lossless, with 35-50% compression for tabular data
@@ -647,7 +842,7 @@ users:@(1):id,name
 1,Alice
 ```
 
-### 17.2 CSV
+### 18.2 CSV
 
 **CSV → ZON:** Add type awareness
 **ZON → CSV:** Table rows export cleanly
@@ -657,23 +852,91 @@ users:@(1):id,name
 - Metadata support
 - Nesting capability
 
+### 18.3 TOON
+
+**Comparison:**
+- ZON: Flat, `@(N)`, `T/F/null` → Better compression
+- TOON: Indented, `[N]{fields}:`, `true/false` → Better readability
+Both are LLM-optimized; choose based on data shape.
+
 ---
 
-## 18. Media Type & File Extension
+## 19. Media Type & File Extension
 
-### 18.1 File Extension
+### 19.1 File Extension
 
 **Extension:** `.zonf`
 
 ZON files use the `.zonf` extension (ZON Format) for all file operations.
 
-### 18.2 Media Type
+**Examples:**
+```
+data.zonf
+users.zonf
+config.zonf
+```
+
+### 19.2 Media Type
 
 **Media type:** `text/zon`
 
 **Status:** Provisional (not yet registered with IANA)
 
 **Charset:** UTF-8 (always)
+
+ZON documents are **always UTF-8 encoded**. The `charset=utf-8` parameter may be specified but defaults to UTF-8 when omitted.
+
+**HTTP Content-Type header:**
+```http
+Content-Type: text/zon
+Content-Type: text/zon; charset=utf-8  # Explicit (optional)
+```
+
+### 19.3 MIME Type Usage
+
+**Web servers:**
+```nginx
+# nginx
+location ~ \.zonf$ {
+    default_type text/zon;
+    charset utf-8;
+}
+```
+
+```apache
+# Apache
+AddType text/zon .zonf
+AddDefaultCharset utf-8
+```
+
+**HTTP responses:**
+```http
+HTTP/1.1 200 OK
+Content-Type: text/zon; charset=utf-8
+Content-Length: 1234
+
+users:@(2):id,name
+1,Alice
+2,Bob
+```
+
+### 19.4 Character Encoding
+
+**Normative requirement:** ZON files MUST be UTF-8 encoded.
+
+**Rationale:**
+- Universal support across programming languages
+- Compatible with JSON (RFC 8259)
+- No byte-order mark (BOM) required
+- Supports full Unicode character set
+
+**Encoding declaration:** Not required (always UTF-8)
+
+### 19.5 IANA Registration
+
+**Current status:** Not registered
+
+**Future work:** Formal registration with IANA is planned for v2.0.
 
 ---
 
@@ -713,8 +976,8 @@ users:@(1):id,name
 ### Appendix B: Test Suite
 
 **Coverage:**
-- ✅ 93/93 unit tests
-- ✅ 13/13 roundtrip tests
+- ✅ 94/94 unit tests
+- ✅ 27/27 roundtrip tests
 - ✅ 100% data integrity
 
 **Test categories:**
@@ -723,17 +986,19 @@ users:@(1):id,name
 - Quoting, escaping
 - Round-trip fidelity
 - Edge cases, errors
-- Security limits
-- Strict mode validation
 
 ### Appendix C: Changelog
 
+**v1.0.4 (2025-11-30)**
+- Colon-less nested syntax
+- Smart flattening
+- Control character escaping
+- Runtime schema validation
+
 **v1.0.3 (2025-11-28)**
-- Python implementation parity with TypeScript
-- Security limits (E301-E304)
-- Strict mode validation (E001-E002)
-- Circular reference detection
-- 93/93 tests passing
+- Disabled sequential column omission
+- 100% LLM accuracy achieved
+- All columns explicit
 
 **v1.0.2 (2025-11-27)**
 - Irregularity threshold tuning

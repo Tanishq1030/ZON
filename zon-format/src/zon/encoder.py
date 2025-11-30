@@ -1,14 +1,11 @@
 """
-ZON Encoder v1.0.3 - Compact Hybrid Format
+ZON Encoder v1.0.4 - Compact Hybrid Format
 
-Breaking changes from v1.0.2:
-- Compact header syntax (@count: instead of @data(count):)
-- Sequential ID omission ([col] notation) - DISABLED for LLM accuracy
-- Sparse table encoding for semi-uniform data
-- Adaptive format selection based on data complexity
-- Circular reference detection
-- Improved number formatting (NaN/Infinity → null, no scientific notation)
-- Better string handling for newlines and empty strings
+Changes in v1.0.4:
+- Colon-less syntax for nested objects and arrays
+- Smart flattening with dot notation
+- Control character escaping (ASCII 0-31)
+- Improved token efficiency (up to 23.8% vs JSON)
 """
 
 import json
