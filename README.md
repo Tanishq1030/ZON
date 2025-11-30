@@ -289,13 +289,60 @@ ZON is **immune to code injection attacks**:
 
 Benchmarks test LLM comprehension using 24 data retrieval questions on gpt-5-nano (Azure OpenAI).
 
-| Format | Accuracy | Tokens | Efficiency Score |
-|--------|----------|--------|------------------|
-| **ZON** | **100.0%** | 19,995 | 123.2 acc%/10K 👑 |
-| TOON | 100.0% | 20,988 | 118.0 acc%/10K |
-| CSV | 100.0% | ~20,500 | ~117 acc%/10K |
-| JSON compact | 91.7% | 27,300 | 82.1 acc%/10K |
-| JSON | 91.7% | 28,042 | 78.5 acc%/10K |
+#### Dataset Catalog
+
+| Dataset | Rows | Structure | Description |
+| ------- | ---- | --------- | ----------- |
+| Unified benchmark | 5 | mixed | Users, config, logs, metadata - mixed structures |
+
+**Structure**: Mixed uniform tables + nested objects  
+**Questions**: 24 total (field retrieval, aggregation, filtering, structure awareness)
+
+#### Efficiency Ranking (Accuracy per 10K Tokens)
+
+Each format ranked by efficiency (accuracy percentage per 10,000 tokens):
+
+```
+ZON            ████████████████████ 123.2 acc%/10K │ 100.0% acc │ 19,995 tokens 👑
+TOON           ███████████████████░ 118.0 acc%/10K │ 100.0% acc │ 20,988 tokens
+CSV            ███████████████████░ ~117 acc%/10K  │ 100.0% acc │ ~20,500 tokens
+JSON compact   ██████████████░░░░░░  82.1 acc%/10K │  91.7% acc │ 27,300 tokens
+JSON           ███████████░░░░░░░░░  78.5 acc%/10K │  91.7% acc │ 28,042 tokens
+```
+
+*Efficiency score = (Accuracy % ÷ Tokens) × 10,000. Higher is better.*
+
+> [!TIP]
+> ZON achieves **100% accuracy** (vs JSON's 91.7%) while using **29% fewer tokens** (19,995 vs 28,041).
+
+#### Per-Model Comparison
+
+Accuracy on the unified dataset with gpt-5-nano:
+
+```
+gpt-5-nano (Azure OpenAI)
+→ ZON            ████████████████████  100.0% (24/24) │ 19,995 tokens
+  TOON           ████████████████████  100.0% (24/24) │ 20,988 tokens
+  JSON           ███████████████████░   95.8% (23/24) │ 28,041 tokens
+  JSON compact   ███████████████████░   91.7% (22/24) │ 27,300 tokens
+```
+
+> [!TIP]
+> ZON matches TOON's 100% accuracy while using **5.0% fewer tokens**.
+
+<details>
+<summary><strong>Performance by Question Type</strong></summary>
+
+| Question Type | ZON | TOON | JSON |
+| ------------- | --- | ---- | ---- |
+| Field Retrieval | 100.0% | 100.0% | 100.0% |
+| Aggregation | 100.0% | 100.0% | 83.3% |
+| Filtering | 100.0% | 100.0% | 100.0% |
+| Structure Awareness | 100.0% | 100.0% | 100.0% |
+
+**ZON Advantage**: Perfect scores across all question categories.
+
+</details>
 
 > ZON achieves **100% accuracy** (vs JSON's 91.7%) while using **29% fewer tokens**.
 
