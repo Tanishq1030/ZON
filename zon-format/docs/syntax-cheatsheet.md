@@ -64,7 +64,7 @@ config:"{database:{host:localhost,port:5432}}"
 ### Primitive Arrays (Inline)
 
 ```zon
-tags:"[nodejs,typescript,llm]"
+tags:"[python,llm,zon]"
 numbers:"[1,2,3,4,5]"
 flags:"[T,F,T]"
 ```
