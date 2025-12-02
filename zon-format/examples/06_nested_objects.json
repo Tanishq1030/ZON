@@ -1,0 +1,22 @@
+{
+  "orderId": "ORD-123",
+  "customer": {
+    "name": "Alice",
+    "address": {
+      "street": "123 Main St",
+      "city": "Wonderland"
+    }
+  },
+  "items": [
+    {
+      "productId": "P1",
+      "qty": 2,
+      "price": 10.5
+    },
+    {
+      "productId": "P2",
+      "qty": 1,
+      "price": 20.0
+    }
+  ]
+}

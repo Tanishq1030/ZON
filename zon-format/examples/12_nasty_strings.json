@@ -1,0 +1,36 @@
+{
+  "unicode": [
+    "Emoji: 🚀🔥🎉💀👽",
+    "Chinese: 你好世界",
+    "Arabic: مرحبا بالعالم",
+    "Russian: Привет мир",
+    "Zalgo: H̴e̴l̴l̴o̴ ̴W̴o̴r̴l̴d̴"
+  ],
+  "control_chars": [
+    "Null: \\u0000",
+    "Backspace: \\b",
+    "Form Feed: \\f",
+    "Newline: \\n",
+    "Carriage Return: \\r",
+    "Tab: \\t",
+    "Vertical Tab: \\v"
+  ],
+  "json_injection": [
+    "{\\\"key\\\": \\\"value\\\"}",
+    "[1, 2, 3]",
+    "null",
+    "true",
+    "false",
+    "// comment",
+    "/* comment */"
+  ],
+  "script_injection": [
+    "<script>alert('xss')</script>",
+    "javascript:void(0)",
+    "'; DROP TABLE users; --"
+  ],
+  "path_traversal": [
+    "../../etc/passwd",
+    "..\\\\..\\\\windows\\\\system32\\\\config\\\\sam"
+  ]
+}

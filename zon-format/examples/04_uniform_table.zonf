@@ -1,0 +1,5 @@
+@4:active,department,id,name,salary
+T,Engineering,101,John Doe,85000
+T,Marketing,102,Jane Smith,72000
+F,Engineering,103,Sam Brown,90000
+T,HR,104,Emily Davis,65000

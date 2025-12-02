@@ -4,7 +4,7 @@ Provides a Zod-like schema builder and validator for ensuring LLM outputs
 match expected structures and constraints.
 """
 
-from typing import Any, Dict, List, Optional, Union, TypeVar, Generic
+from typing import Any, Dict, List, Optional, Union, TypeVar, Generic, Tuple
 from dataclasses import dataclass
 from ..core.decoder import decode
 from ..core.exceptions import ZonDecodeError

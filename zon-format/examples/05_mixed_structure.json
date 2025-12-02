@@ -1,0 +1,16 @@
+{
+  "metadata": {
+    "generated": "2025-01-01T12:00:00Z",
+    "source": "System A"
+  },
+  "items": [
+    {
+      "id": 1,
+      "value": 100
+    },
+    {
+      "id": 2,
+      "value": 200
+    }
+  ]
+}

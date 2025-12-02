@@ -1,0 +1,30 @@
+[
+  {
+    "id": 101,
+    "name": "John Doe",
+    "department": "Engineering",
+    "salary": 85000,
+    "active": true
+  },
+  {
+    "id": 102,
+    "name": "Jane Smith",
+    "department": "Marketing",
+    "salary": 72000,
+    "active": true
+  },
+  {
+    "id": 103,
+    "name": "Sam Brown",
+    "department": "Engineering",
+    "salary": 90000,
+    "active": false
+  },
+  {
+    "id": 104,
+    "name": "Emily Davis",
+    "department": "HR",
+    "salary": 65000,
+    "active": true
+  }
+]
